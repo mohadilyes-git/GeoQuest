@@ -17,6 +17,11 @@ struct RegisterView: View {
     @State private var username = ""
     @State private var password = ""
     @State private var confirmPassword = ""
+    @State private var isLoading = false
+    @State private var errorMessage = ""
+    @State private var registrationSuccess = false
+    
+    let api = GeoQuestAPIManager.shared
     
     var body: some View {
         ZStack {
@@ -83,18 +88,45 @@ struct RegisterView: View {
                     }
                     .padding(.horizontal, 24)
                     
+                    // Error message
+                    if !errorMessage.isEmpty {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
+                            .font(.system(size: 13))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
+                    }
+                    
+                    // Success message
+                    if registrationSuccess {
+                        Text("Account created! You can now log in.")
+                            .foregroundColor(Color.gqLeafGreen)
+                            .font(.system(size: 13))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
+                    }
+                    
                     // Register button
                     Button {
-                        // Need to add register login
+                        Task { await handleRegister() }
                     } label: {
-                        Text("Create Account")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 52)
-                            .background(Color.gqLeafGreen)
-                            .cornerRadius(12)
+                        ZStack {
+                            Text("Create Account")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundColor(.white)
+                                .opacity(isLoading ? 0 : 1)
+                            
+                            if isLoading {
+                                ProgressView()
+                                    .tint(.white)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(Color.gqLeafGreen)
+                        .cornerRadius(12)
                     }
+                    .disabled(isLoading)
                     .padding(.horizontal, 24)
                     
                     // Back button to login page
@@ -128,6 +160,75 @@ struct RegisterView: View {
                 }
             }
         }
+    }
+    
+    // Register logic
+    func handleRegister() async {
+        errorMessage = ""
+        registrationSuccess = false
+        
+        // Check all fields filled
+        guard !firstname.isEmpty, !lastname.isEmpty,
+              !phone.isEmpty, !username.isEmpty,
+              !password.isEmpty else {
+            errorMessage = "Please fill in all fields"
+            return
+        }
+        
+        // Check passwords match
+        guard password == confirmPassword else {
+            errorMessage = "Passwords do not match"
+            return
+        }
+        
+        // Check password length
+        guard password.count >= 6 else {
+            errorMessage = "Password must be at least 6 characters"
+            return
+        }
+        
+        isLoading = true
+        
+        do {
+            // Check username not already taken
+            let existingUser = try await api.getUserByUsername(username)
+            if existingUser != nil {
+                errorMessage = "That username is already taken"
+                isLoading = false
+                return
+            }
+            
+            // Build the payload
+            let payload = UserPayload(
+                userFirstname: firstname,
+                userLastname: lastname,
+                userPhone: phone,
+                userUsername: username,
+                userPassword: password,
+                userLatitude: 0.0,
+                userLongitude: 0.0,
+                userTimestamp: Date().timeIntervalSince1970,
+                userImageURL: "https://placehold.co/300x300/png"
+            )
+            
+            // POST to API
+            let newUser = try await api.createUser(payload: payload)
+            
+            // Save to UserDefaults so they're logged in straight away
+            UserDefaults.standard.set(newUser.userID, forKey: "loggedInUserID")
+            UserDefaults.standard.set(newUser.userUsername, forKey: "loggedInUsername")
+            
+            registrationSuccess = true
+            
+            // Go back to login after a short delay
+            try await Task.sleep(nanoseconds: 1_500_000_000)
+            dismiss()
+            
+        } catch {
+            errorMessage = "Registration failed. Please try again."
+        }
+        
+        isLoading = false
     }
 }
 

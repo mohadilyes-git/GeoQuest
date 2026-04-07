@@ -29,6 +29,11 @@ final class GeoQuestAPIManager {
         return try decoder.decode([User].self, from: data)
     }
 
+    func getUserByUsername(_ username: String) async throws -> User? {
+        let users = try await getUsers()
+        return users.first { $0.userUsername == username }
+    }
+
     func getUser(id: Int) async throws -> User {
         let request = try makeRequest(path: "users/\(id)", method: "GET")
         let (data, response) = try await session.data(for: request)
