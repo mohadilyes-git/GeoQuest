@@ -10,9 +10,22 @@
 		B1CDB9742F7EE5EA00C7AB18 /* GeoQuest.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GeoQuest.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		B1CDBBED2F871DC700C7AB18 /* Exceptions for "GeoQuest" folder in "GeoQuest" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = B1CDB9732F7EE5EA00C7AB18 /* GeoQuest */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		B1CDB9762F7EE5EA00C7AB18 /* GeoQuest */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B1CDBBED2F871DC700C7AB18 /* Exceptions for "GeoQuest" folder in "GeoQuest" target */,
+			);
 			path = GeoQuest;
 			sourceTree = "<group>";
 		};
