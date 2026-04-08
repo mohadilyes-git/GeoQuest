@@ -16,9 +16,22 @@
 		B1CDB9742F7EE5EA00C7AB18 /* GeoQuest.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GeoQuest.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		FA3D21C02F85E143004F83AA /* Exceptions for "GeoQuest" folder in "GeoQuest" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = B1CDB9732F7EE5EA00C7AB18 /* GeoQuest */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		B1CDB9762F7EE5EA00C7AB18 /* GeoQuest */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				FA3D21C02F85E143004F83AA /* Exceptions for "GeoQuest" folder in "GeoQuest" target */,
+			);
 			path = GeoQuest;
 			sourceTree = "<group>";
 		};
@@ -266,8 +279,11 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = M5QSBZPDK6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GeoQuest/Info.plist;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "GeoQuest needs your location to find nearby caches";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -278,7 +294,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ilyes.geoquest.GeoQuest;
+				PRODUCT_BUNDLE_IDENTIFIER = com.Salim.geoquest.GeoQuest;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -297,8 +313,11 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = M5QSBZPDK6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GeoQuest/Info.plist;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "GeoQuest needs your location to find nearby caches";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -309,7 +328,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ilyes.geoquest.GeoQuest;
+				PRODUCT_BUNDLE_IDENTIFIER = com.Salim.geoquest.GeoQuest;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;

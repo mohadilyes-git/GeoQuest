@@ -17,7 +17,7 @@ struct GeoQuestApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            LoginView()
         }
     }
-}
+} 
