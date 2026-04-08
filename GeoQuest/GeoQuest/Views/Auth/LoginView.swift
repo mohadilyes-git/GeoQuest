@@ -10,6 +10,12 @@ struct LoginView: View {
     @State private var errorMessage = ""
     @State private var isLoggedIn = false
     
+    @FocusState private var focusedField: Field?
+    
+    enum Field {
+        case username, password
+    }
+    
     let api = GeoQuestAPIManager.shared
     let images = ["HomeScreenImage1", "HomeScreenImage2", "HomeScreenImage3", "HomeScreenImage4"]
     let timer = Timer.publish(every: 4, on: .main, in: .common).autoconnect()
@@ -32,98 +38,115 @@ struct LoginView: View {
                 Color.black.opacity(0.45)
                     .ignoresSafeArea()
                 
-                VStack(spacing: 0) {
-                    
-                    Spacer()
-                    
-                    // Logo and title
-                    VStack(spacing: 8) {
-                        Text("GeoQuest")
-                            .font(.system(size: 38, weight: .bold))
-                            .foregroundColor(.white)
+                ScrollView {
+                    VStack(spacing: 0) {
                         
-                        Text("Find. Explore. Discover.")
-                            .font(.system(size: 16))
-                            .foregroundColor(.white.opacity(0.8))
-                    }
-                    
-                    Spacer()
-                    
-                    VStack(spacing: 16) {
+                        Spacer()
+                            .frame(height: 80)
                         
-                        // Username field
-                        HStack {
-                            Image(systemName: "person")
-                                .foregroundColor(Color.gqSand)
-                                .frame(width: 20)
-                            TextField("Username", text: $username)
+                        // Logo and title
+                        VStack(spacing: 8) {
+                            Text("GeoQuest")
+                                .font(.system(size: 38, weight: .bold))
                                 .foregroundColor(.white)
-                                .autocapitalization(.none)
-                                .autocorrectionDisabled()
-                        }
-                        .padding()
-                        .background(Color.white.opacity(0.15))
-                        .cornerRadius(12)
-                        
-                        // Password field
-                        HStack {
-                            Image(systemName: "lock")
-                                .foregroundColor(Color.gqSand)
-                                .frame(width: 20)
-                            SecureField("Password", text: $password)
-                                .foregroundColor(.white)
-                        }
-                        .padding()
-                        .background(Color.white.opacity(0.15))
-                        .cornerRadius(12)
-                        
-                        // Error message
-                        if !errorMessage.isEmpty {
-                            Text(errorMessage)
-                                .foregroundColor(.red)
-                                .font(.system(size: 13))
-                                .multilineTextAlignment(.center)
+                            
+                            Text("Find. Explore. Discover.")
+                                .font(.system(size: 16))
+                                .foregroundColor(.white.opacity(0.8))
                         }
                         
-                        // Login button
-                        Button {
-                            Task { await handleLogin() }
-                        } label: {
-                            ZStack {
-                                Text("Login")
-                                    .font(.system(size: 17, weight: .semibold))
+                        Spacer()
+                            .frame(height: 40)
+                        
+                        VStack(spacing: 16) {
+                            
+                            // Username field
+                            HStack {
+                                Image(systemName: "person")
+                                    .foregroundColor(Color.gqSand)
+                                    .frame(width: 20)
+                                TextField("Username", text: $username)
                                     .foregroundColor(.white)
-                                    .opacity(isLoading ? 0 : 1)
-                                
-                                if isLoading {
-                                    ProgressView()
-                                        .tint(.white)
-                                }
+                                    .autocapitalization(.none)
+                                    .autocorrectionDisabled()
+                                    .focused($focusedField, equals: .username)
+                                    .submitLabel(.next)
+                                    .onSubmit { focusedField = .password }
                             }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 52)
-                            .background(Color.gqLeafGreen)
+                            .padding()
+                            .background(Color.black.opacity(0.45))
                             .cornerRadius(12)
-                        }
-                        .disabled(isLoading)
-                        
-                        // Register link
-                        NavigationLink {
-                            RegisterView()
-                        } label: {
-                            HStack(spacing: 4) {
-                                Text("Don't have an account?")
-                                    .foregroundColor(.white.opacity(0.8))
-                                Text("Register")
-                                    .foregroundColor(Color.gqGoldReward)
-                                    .fontWeight(.semibold)
+                            
+                            // Password field
+                            HStack {
+                                Image(systemName: "lock")
+                                    .foregroundColor(Color.gqSand)
+                                    .frame(width: 20)
+                                SecureField("Password", text: $password)
+                                    .foregroundColor(.white)
+                                    .focused($focusedField, equals: .password)
+                                    .submitLabel(.go)
+                                    .onSubmit {
+                                        focusedField = nil
+                                        Task { await handleLogin() }
+                                    }
                             }
-                            .font(.system(size: 15))
+                            .padding()
+                            .background(Color.black.opacity(0.45))
+                            .cornerRadius(12)
+                            
+                            // Error message
+                            if !errorMessage.isEmpty {
+                                Text(errorMessage)
+                                    .foregroundColor(.red)
+                                    .font(.system(size: 13))
+                                    .multilineTextAlignment(.center)
+                            }
+                            
+                            // Login button with spinner
+                            Button {
+                                focusedField = nil
+                                Task { await handleLogin() }
+                            } label: {
+                                ZStack {
+                                    Text("Login")
+                                        .font(.system(size: 17, weight: .semibold))
+                                        .foregroundColor(.white)
+                                        .opacity(isLoading ? 0 : 1)
+                                    
+                                    if isLoading {
+                                        ProgressView()
+                                            .tint(.white)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 52)
+                                .background(Color.gqLeafGreen)
+                                .cornerRadius(12)
+                            }
+                            .disabled(isLoading)
+                            
+                            // Register link
+                            NavigationLink {
+                                RegisterView()
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Text("Don't have an account?")
+                                        .foregroundColor(.white.opacity(0.8))
+                                    Text("Register")
+                                        .foregroundColor(Color.gqGoldReward)
+                                        .fontWeight(.semibold)
+                                }
+                                .font(.system(size: 15))
+                            }
                         }
+                        .padding(.horizontal, 28)
+                        .padding(.bottom, 48)
                     }
-                    .padding(.horizontal, 28)
-                    .padding(.bottom, 48)
+                    .frame(minHeight: 700)
                 }
+                .scrollDisabled(true)
+                .ignoresSafeArea(.keyboard, edges: .bottom)
             }
             .onReceive(timer) { _ in
                 currentImageIndex = (currentImageIndex + 1) % images.count
@@ -162,7 +185,7 @@ struct LoginView: View {
                 return
             }
             
-            // Save to UserDefaults
+            // Save logged in user to UserDefaults
             UserDefaults.standard.set(user.userID, forKey: "loggedInUserID")
             UserDefaults.standard.set(user.userUsername, forKey: "loggedInUsername")
             
