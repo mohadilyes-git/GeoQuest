@@ -17,9 +17,15 @@ final class GeoQuestAPIManager {
     static let shared = GeoQuestAPIManager()
     private let baseURL = "https://mark0s.com/geoquest/v1/api"
     private let apiKey = "bpf4i9"
-    private let session = URLSession.shared
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
+    
+    private let session: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 30
+        return URLSession(configuration: config)
+    }()
+    
 
     //  Users
     func getUsers() async throws -> [User] {
