@@ -1,4 +1,3 @@
-
 import SwiftUI
 import Combine
 
@@ -7,7 +6,11 @@ struct LoginView: View {
     @State private var username = ""
     @State private var password = ""
     @State private var currentImageIndex = 0
+    @State private var isLoading = false
+    @State private var errorMessage = ""
+    @State private var isLoggedIn = false
     
+    let api = GeoQuestAPIManager.shared
     let images = ["HomeScreenImage1", "HomeScreenImage2", "HomeScreenImage3", "HomeScreenImage4"]
     let timer = Timer.publish(every: 4, on: .main, in: .common).autoconnect()
     
@@ -15,7 +18,7 @@ struct LoginView: View {
         NavigationStack {
             ZStack {
                 
-                // Making images slides for Background
+                // Background slideshow
                 ForEach(0..<images.count, id: \.self) { index in
                     Image(images[index])
                         .resizable()
@@ -29,14 +32,12 @@ struct LoginView: View {
                 Color.black.opacity(0.45)
                     .ignoresSafeArea()
                 
-                //  Content
                 VStack(spacing: 0) {
                     
                     Spacer()
                     
                     // Logo and title
                     VStack(spacing: 8) {
-                        
                         Text("GeoQuest")
                             .font(.system(size: 38, weight: .bold))
                             .foregroundColor(.white)
@@ -48,7 +49,6 @@ struct LoginView: View {
                     
                     Spacer()
                     
-                    //  The login form
                     VStack(spacing: 16) {
                         
                         // Username field
@@ -77,18 +77,35 @@ struct LoginView: View {
                         .background(Color.white.opacity(0.15))
                         .cornerRadius(12)
                         
+                        // Error message
+                        if !errorMessage.isEmpty {
+                            Text(errorMessage)
+                                .foregroundColor(.red)
+                                .font(.system(size: 13))
+                                .multilineTextAlignment(.center)
+                        }
+                        
                         // Login button
                         Button {
-                            // add login logic later
+                            Task { await handleLogin() }
                         } label: {
-                            Text("Login")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 52)
-                                .background(Color.gqLeafGreen)
-                                .cornerRadius(12)
+                            ZStack {
+                                Text("Login")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .opacity(isLoading ? 0 : 1)
+                                
+                                if isLoading {
+                                    ProgressView()
+                                        .tint(.white)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .background(Color.gqLeafGreen)
+                            .cornerRadius(12)
                         }
+                        .disabled(isLoading)
                         
                         // Register link
                         NavigationLink {
@@ -111,7 +128,51 @@ struct LoginView: View {
             .onReceive(timer) { _ in
                 currentImageIndex = (currentImageIndex + 1) % images.count
             }
+            .navigationDestination(isPresented: $isLoggedIn) {
+                MapView()
+            }
         }
+    }
+    
+    // Login logic
+    func handleLogin() async {
+        errorMessage = ""
+        
+        guard !username.isEmpty, !password.isEmpty else {
+            errorMessage = "Please enter your username and password"
+            return
+        }
+        
+        isLoading = true
+        
+        do {
+            // Fetch matching user by username
+            let matchedUser = try await api.getUserByUsername(username)
+            
+            guard let user = matchedUser else {
+                errorMessage = "No account found with that username"
+                isLoading = false
+                return
+            }
+            
+            // Check password
+            guard user.userPassword == password else {
+                errorMessage = "Incorrect password"
+                isLoading = false
+                return
+            }
+            
+            // Save to UserDefaults
+            UserDefaults.standard.set(user.userID, forKey: "loggedInUserID")
+            UserDefaults.standard.set(user.userUsername, forKey: "loggedInUsername")
+            
+            isLoggedIn = true
+            
+        } catch {
+            errorMessage = "Something went wrong. Please try again."
+        }
+        
+        isLoading = false
     }
 }
 
