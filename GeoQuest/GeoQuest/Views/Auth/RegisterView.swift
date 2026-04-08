@@ -21,6 +21,12 @@ struct RegisterView: View {
     @State private var errorMessage = ""
     @State private var registrationSuccess = false
     
+    @FocusState private var focusedField: Field?
+    
+    enum Field {
+        case firstname, lastname, phone, username, password, confirmPassword
+    }
+    
     let api = GeoQuestAPIManager.shared
     
     var body: some View {
@@ -40,9 +46,9 @@ struct RegisterView: View {
                         
                         Text("Join the hunt")
                             .font(.system(size: 15))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Color(.label).opacity(0.5))
                     }
-                    .padding(.top, 40)
+                    .padding(.top, 5)
                     
                     // Form
                     VStack(spacing: 14) {
@@ -50,41 +56,60 @@ struct RegisterView: View {
                         GQTextField(
                             icon: "person",
                             placeholder: "First name",
-                            text: $firstname
+                            text: $firstname,
+                            onSubmit: { focusedField = .lastname }
                         )
+                        .focused($focusedField, equals: .firstname)
                         
                         GQTextField(
                             icon: "person",
                             placeholder: "Last name",
-                            text: $lastname
+                            text: $lastname,
+                            onSubmit: { focusedField = .phone }
                         )
+                        .focused($focusedField, equals: .lastname)
                         
                         GQTextField(
                             icon: "phone",
                             placeholder: "Phone number",
-                            text: $phone
+                            text: $phone,
+                            onSubmit: { focusedField = .username }
                         )
                         .keyboardType(.phonePad)
+                        .focused($focusedField, equals: .phone)
+                        .onChange(of: phone) {
+                            phone = phone.filter { $0.isNumber }
+                        }
                         
                         GQTextField(
                             icon: "at",
                             placeholder: "Username",
-                            text: $username
+                            text: $username,
+                            onSubmit: { focusedField = .password }
                         )
                         .autocapitalization(.none)
                         .autocorrectionDisabled()
+                        .focused($focusedField, equals: .username)
                         
                         GQSecureField(
                             icon: "lock",
                             placeholder: "Password",
-                            text: $password
+                            text: $password,
+                            onSubmit: { focusedField = .confirmPassword }
                         )
+                        .focused($focusedField, equals: .password)
                         
                         GQSecureField(
                             icon: "lock.fill",
                             placeholder: "Confirm password",
-                            text: $confirmPassword
+                            text: $confirmPassword,
+                            submit: .go,
+                            onSubmit: {
+                                focusedField = nil
+                                Task { await handleRegister() }
+                            }
                         )
+                        .focused($focusedField, equals: .confirmPassword)
                     }
                     .padding(.horizontal, 24)
                     
@@ -106,8 +131,9 @@ struct RegisterView: View {
                             .padding(.horizontal, 24)
                     }
                     
-                    // Register button
+                    // Register button with spinner
                     Button {
+                        focusedField = nil
                         Task { await handleRegister() }
                     } label: {
                         ZStack {
@@ -135,7 +161,7 @@ struct RegisterView: View {
                     } label: {
                         HStack(spacing: 4) {
                             Text("Already have an account?")
-                                .foregroundColor(.secondary)
+                                .foregroundColor(Color(.label).opacity(0.5))
                             Text("Login")
                                 .foregroundColor(Color.gqLeafGreen)
                                 .fontWeight(.semibold)
@@ -144,8 +170,11 @@ struct RegisterView: View {
                     }
                     .padding(.bottom, 40)
                 }
+                .padding(.bottom, 20)
             }
+            .scrollDismissesKeyboard(.interactively)
         }
+        .ignoresSafeArea(.keyboard, edges: .bottom)
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
@@ -167,7 +196,6 @@ struct RegisterView: View {
         errorMessage = ""
         registrationSuccess = false
         
-        // Check all fields filled
         guard !firstname.isEmpty, !lastname.isEmpty,
               !phone.isEmpty, !username.isEmpty,
               !password.isEmpty else {
@@ -175,22 +203,24 @@ struct RegisterView: View {
             return
         }
         
-        // Check passwords match
+        guard username.count >= 8 else {
+            errorMessage = "Username must be at least 8 characters"
+            return
+        }
+        
         guard password == confirmPassword else {
             errorMessage = "Passwords do not match"
             return
         }
         
-        // Check password length
-        guard password.count >= 6 else {
-            errorMessage = "Password must be at least 6 characters"
+        guard password.count >= 8 else {
+            errorMessage = "Password must be at least 8 characters"
             return
         }
         
         isLoading = true
         
         do {
-            // Check username not already taken
             let existingUser = try await api.getUserByUsername(username)
             if existingUser != nil {
                 errorMessage = "That username is already taken"
@@ -198,7 +228,6 @@ struct RegisterView: View {
                 return
             }
             
-            // Build the payload
             let payload = UserPayload(
                 userFirstname: firstname,
                 userLastname: lastname,
@@ -208,24 +237,21 @@ struct RegisterView: View {
                 userLatitude: 0.0,
                 userLongitude: 0.0,
                 userTimestamp: Date().timeIntervalSince1970,
-                userImageURL: "https://placehold.co/300x300/png"
+                userImageURL: "https://static.generated.photos/vue-static/face-generator/landing/wall/\(Int.random(in: 1...24)).jpg"
             )
             
-            // POST to API
             let newUser = try await api.createUser(payload: payload)
             
-            // Save to UserDefaults so they're logged in straight away
             UserDefaults.standard.set(newUser.userID, forKey: "loggedInUserID")
             UserDefaults.standard.set(newUser.userUsername, forKey: "loggedInUsername")
             
             registrationSuccess = true
             
-            // Go back to login after a short delay
-            try await Task.sleep(nanoseconds: 1_500_000_000)
+            try await Task.sleep(for: .seconds(1.5))
             dismiss()
             
         } catch {
-            errorMessage = "Registration failed. Please try again."
+            errorMessage = "Error: \(error)"
         }
         
         isLoading = false
@@ -237,6 +263,8 @@ struct GQTextField: View {
     let icon: String
     let placeholder: String
     @Binding var text: String
+    var submit: SubmitLabel = .next
+    var onSubmit: () -> Void = {}
     
     var body: some View {
         HStack {
@@ -244,10 +272,12 @@ struct GQTextField: View {
                 .foregroundColor(Color.gqSand)
                 .frame(width: 20)
             TextField(placeholder, text: $text)
-                .foregroundColor(Color.gqLeafGreen)
+                .foregroundColor(Color.primary)
+                .submitLabel(submit)
+                .onSubmit(onSubmit)
         }
         .padding()
-        .background(Color.white)
+        .background(Color(.systemBackground))
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
@@ -261,6 +291,8 @@ struct GQSecureField: View {
     let icon: String
     let placeholder: String
     @Binding var text: String
+    var submit: SubmitLabel = .next
+    var onSubmit: () -> Void = {}
     
     var body: some View {
         HStack {
@@ -268,10 +300,12 @@ struct GQSecureField: View {
                 .foregroundColor(Color.gqSand)
                 .frame(width: 20)
             SecureField(placeholder, text: $text)
-                .foregroundColor(Color.gqLeafGreen)
+                .foregroundColor(Color.primary)
+                .submitLabel(submit)
+                .onSubmit(onSubmit)
         }
         .padding()
-        .background(Color.white)
+        .background(Color(.systemBackground))
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
