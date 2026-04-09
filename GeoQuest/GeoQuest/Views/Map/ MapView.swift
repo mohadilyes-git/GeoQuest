@@ -12,6 +12,7 @@ struct MapView: View {
     @StateObject private var locationManager = LocationManager()
     @State private var caches: [Cache] = []
     @State private var selectedCache: Cache? = nil
+    @State private var foundCacheIDs: Set<Int> = []
     @State private var showCacheDetail = false
     @State private var isLoading = false
     @State private var region = MKCoordinateRegion(
@@ -32,7 +33,8 @@ struct MapView: View {
                     longitude: cache.cacheLongitude)) {
                     CachePinView(
                         cache: cache,
-                        isSelected: selectedCache?.id == cache.id
+                        isSelected: selectedCache?.id == cache.id,
+                        isFound: foundCacheIDs.contains(cache.cacheID)
                     )
                     .onTapGesture {
                         selectedCache = cache
@@ -126,6 +128,13 @@ struct MapView: View {
         Task {
             do {
                 caches = try await GeoQuestAPIManager.shared.getCaches()
+                
+                let userID = UserDefaults.standard.integer(forKey: "loggedInUserID")
+                let players = try await GeoQuestAPIManager.shared.getPlayers()
+                if let player = players.first(where: { $0.playerUserID == userID }) {
+                    let finds = try await GeoQuestAPIManager.shared.getFindsForPlayer(playerID: player.playerID)
+                    foundCacheIDs = Set(finds.map { $0.findCacheID })
+                }
             } catch {
                 print("Error loading caches: \(error)")
             }
@@ -147,16 +156,19 @@ struct MapView: View {
 struct CachePinView: View {
     let cache: Cache
     let isSelected: Bool
+    let isFound: Bool
     
     var body: some View {
         VStack(spacing: 4) {
             ZStack {
                 Circle()
-                    .fill(isSelected ? Color.gqGoldReward : Color.gqCacheRed)
+                    .fill(isFound ? Color.gqLeafGreen :
+                          isSelected ? Color.gqGoldReward :
+                          Color.gqCacheRed)
                     .frame(width: isSelected ? 44 : 36,
                            height: isSelected ? 44 : 36)
                 
-                Image(systemName: "mappin")
+                Image(systemName: isFound ? "checkmark" : "mappin")
                     .font(.system(size: isSelected ? 20 : 16))
                     .foregroundColor(.white)
             }
