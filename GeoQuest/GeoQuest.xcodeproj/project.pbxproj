@@ -269,6 +269,7 @@
 				DEVELOPMENT_TEAM = 34L534GB34;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "GeoQuest needs camera access to take photo evidence when finding a cache";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "GeoQuest needs your location to find nearby caches";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -302,6 +303,7 @@
 				DEVELOPMENT_TEAM = 34L534GB34;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "GeoQuest needs camera access to take photo evidence when finding a cache";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "GeoQuest needs your location to find nearby caches";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
