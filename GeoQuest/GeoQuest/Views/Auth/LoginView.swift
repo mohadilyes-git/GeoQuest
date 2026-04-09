@@ -42,7 +42,7 @@ struct LoginView: View {
                     VStack(spacing: 0) {
                         
                         Spacer()
-                            .frame(height: 80)
+                            .frame(height: 190)
                         
                         // Logo and title
                         VStack(spacing: 8) {
