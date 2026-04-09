@@ -214,7 +214,7 @@ struct CachePinView: View {
         @State private var distance: Double? = nil
         
         // Unlock threshold in metres
-        let unlockRadius: Double = 50000
+        let unlockRadius: Double = 50
         
         var isNearCache: Bool {
             guard let distance = distance else { return false }
