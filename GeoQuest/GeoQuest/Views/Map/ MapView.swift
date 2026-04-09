@@ -371,9 +371,9 @@ struct CachePinView: View {
                     }
                 }
             }
-           // .sheet(isPresented: $showCamera) {
-            //    CameraView(capturedImage: $capturedImage)
-            //}
+            .sheet(isPresented: $showCamera) {
+                CameraView(capturedImage: $capturedImage)
+            }
             .onAppear {
                 updateDistance()
             }
@@ -399,16 +399,26 @@ struct CachePinView: View {
             
             Task {
                 do {
-                    // Get player ID for this user
+                    // Get all players
                     let players = try await GeoQuestAPIManager.shared.getPlayers()
-                    let player = players.first { $0.playerUserID == userID }
+                    var player = players.first { $0.playerUserID == userID }
+                    
+                    // If not a player yet, auto join event 1 (Global Mode)
+                    if player == nil {
+                        let joinPayload = PlayerPayload(
+                            playerUserID: userID,
+                            playerEventID: 1
+                        )
+                        player = try await GeoQuestAPIManager.shared.joinEvent(payload: joinPayload)
+                    }
                     
                     guard let playerID = player?.playerID else {
-                        errorMessage = "You need to join an event first"
+                        errorMessage = "Could not join event"
                         isLogging = false
                         return
                     }
                     
+                    // Log the find
                     let payload = FindPayload(
                         findPlayerID: playerID,
                         findCacheID: cache.cacheID,
@@ -420,7 +430,7 @@ struct CachePinView: View {
                     logSuccess = true
                     
                 } catch {
-                    errorMessage = "Failed to log find: \(error.localizedDescription)"
+                    errorMessage = "Failed: \(error.localizedDescription)"
                 }
                 isLogging = false
             }
