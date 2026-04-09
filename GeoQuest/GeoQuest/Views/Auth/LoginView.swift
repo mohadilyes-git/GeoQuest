@@ -66,7 +66,8 @@ struct LoginView: View {
                                     .foregroundColor(Color.gqSand)
                                     .frame(width: 20)
                                 TextField("Username", text: $username)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.black)
+                                    .font(.system(size: 16))
                                     .autocapitalization(.none)
                                     .autocorrectionDisabled()
                                     .focused($focusedField, equals: .username)
@@ -74,7 +75,7 @@ struct LoginView: View {
                                     .onSubmit { focusedField = .password }
                             }
                             .padding()
-                            .background(Color.black.opacity(0.45))
+                            .background(Color.white.opacity(0.9))
                             .cornerRadius(12)
                             
                             // Password field
@@ -83,7 +84,8 @@ struct LoginView: View {
                                     .foregroundColor(Color.gqSand)
                                     .frame(width: 20)
                                 SecureField("Password", text: $password)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.black)
+                                    .font(.system(size: 16))
                                     .focused($focusedField, equals: .password)
                                     .submitLabel(.go)
                                     .onSubmit {
@@ -92,7 +94,7 @@ struct LoginView: View {
                                     }
                             }
                             .padding()
-                            .background(Color.black.opacity(0.45))
+                            .background(Color.white.opacity(0.9))
                             .cornerRadius(12)
                             
                             // Error message
