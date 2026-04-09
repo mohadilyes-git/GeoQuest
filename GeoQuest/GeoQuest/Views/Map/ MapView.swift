@@ -13,6 +13,7 @@ struct MapView: View {
     @State private var caches: [Cache] = []
     @State private var selectedCache: Cache? = nil
     @State private var foundCacheIDs: Set<Int> = []
+    @State private var hasSetInitialLocation = false
     @State private var showCacheDetail = false
     @State private var isLoading = false
     @State private var region = MKCoordinateRegion(
@@ -26,23 +27,24 @@ struct MapView: View {
             //  Map
             
             Map(coordinateRegion: $region,
+                interactionModes: .all,
                 showsUserLocation: true,
                 annotationItems: caches) { cache in
                 MapAnnotation(coordinate: CLLocationCoordinate2D(
                     latitude: cache.cacheLatitude,
                     longitude: cache.cacheLongitude)) {
-                    CachePinView(
-                        cache: cache,
-                        isSelected: selectedCache?.id == cache.id,
-                        isFound: foundCacheIDs.contains(cache.cacheID)
-                    )
-                    .onTapGesture {
-                        selectedCache = cache
-                        showCacheDetail = true
+                        CachePinView(
+                            cache: cache,
+                            isSelected: selectedCache?.id == cache.id,
+                            isFound: foundCacheIDs.contains(cache.cacheID)
+                        )
+                        .onTapGesture {
+                            selectedCache = cache
+                            showCacheDetail = true
+                        }
                     }
-                }
             }
-            .ignoresSafeArea()
+                .ignoresSafeArea()
             
             //Top bar
             
@@ -107,40 +109,45 @@ struct MapView: View {
         }
         .sheet(isPresented: $showCacheDetail) {
             if let cache = selectedCache {
-                CacheDetailView(cache: cache)
+                CacheDetailView(cache: cache, isAlreadyFound: foundCacheIDs.contains(cache.cacheID))
             }
         }
+        
         .onAppear {
-            loadCaches()
-        }
-        .onChange(of: locationManager.userLocation) { location in
-            if let location = location {
-                withAnimation {
-                    region.center = location.coordinate
+                loadCaches()
+                NotificationCenter.default.addObserver(forName: NSNotification.Name("cacheFound"), object: nil, queue: .main) { notification in
+                    if let cacheID = notification.object as? Int {
+                        foundCacheIDs.insert(cacheID)
+                    }
                 }
             }
-        }
+        
     }
     
     //  Load caches
-    private func loadCaches() {
-        isLoading = true
-        Task {
-            do {
-                caches = try await GeoQuestAPIManager.shared.getCaches()
-                
-                let userID = UserDefaults.standard.integer(forKey: "loggedInUserID")
-                let players = try await GeoQuestAPIManager.shared.getPlayers()
-                if let player = players.first(where: { $0.playerUserID == userID }) {
-                    let finds = try await GeoQuestAPIManager.shared.getFindsForPlayer(playerID: player.playerID)
-                    foundCacheIDs = Set(finds.map { $0.findCacheID })
-                }
-            } catch {
-                print("Error loading caches: \(error)")
+        private func loadCaches() {
+            isLoading = true
+            
+            // Set initial location once
+            if let location = locationManager.userLocation {
+                region.center = location.coordinate
             }
-            isLoading = false
+            
+            Task {
+                do {
+                    caches = try await GeoQuestAPIManager.shared.getCaches()
+                    let userID = UserDefaults.standard.integer(forKey: "loggedInUserID")
+                    let players = try await GeoQuestAPIManager.shared.getPlayers()
+                    if let player = players.first(where: { $0.playerUserID == userID }) {
+                        let finds = try await GeoQuestAPIManager.shared.getFindsForPlayer(playerID: player.playerID)
+                        foundCacheIDs = Set(finds.map { $0.findCacheID })
+                    }
+                } catch {
+                    print("Error loading caches: \(error)")
+                }
+                isLoading = false
+            }
         }
-    }
     
     //  Centre on user
     private func centreOnUser() {
@@ -193,6 +200,8 @@ struct CachePinView: View {
     
     struct CacheDetailView: View {
         let cache: Cache
+        let isAlreadyFound: Bool
+        
         @Environment(\.dismiss) var dismiss
         @StateObject private var locationManager = LocationManager()
         
@@ -205,7 +214,7 @@ struct CachePinView: View {
         @State private var distance: Double? = nil
         
         // Unlock threshold in metres
-        let unlockRadius: Double = 50
+        let unlockRadius: Double = 50000
         
         var isNearCache: Bool {
             guard let distance = distance else { return false }
@@ -333,8 +342,19 @@ struct CachePinView: View {
                         }
                         
                         // Unlock / Camera / Log button
-                        if logSuccess {
-                            // Already logged
+                        if isAlreadyFound {
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(Color.gqLeafGreen)
+                                Text("Already found!")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(Color.gqLeafGreen)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .background(Color.gqLeafGreen.opacity(0.15))
+                            .cornerRadius(12)
+                        } else if logSuccess {
                             Button {
                                 dismiss()
                             } label: {
@@ -347,7 +367,6 @@ struct CachePinView: View {
                                     .cornerRadius(12)
                             }
                         } else if capturedImage != nil {
-                            // Photo taken — log the find
                             Button {
                                 logFind()
                             } label: {
@@ -368,7 +387,6 @@ struct CachePinView: View {
                             }
                             .disabled(isLogging)
                         } else {
-                            // Unlock button — only active when nearby
                             Button {
                                 showCamera = true
                             } label: {
@@ -456,6 +474,8 @@ struct CachePinView: View {
                     
                     let _ = try await GeoQuestAPIManager.shared.logFind(payload: payload)
                     logSuccess = true
+                    // notify map to update this cache as found
+                    NotificationCenter.default.post(name: NSNotification.Name("cacheFound"), object: cache.cacheID)
                     
                 } catch {
                     errorMessage = "Failed: \(error.localizedDescription)"
