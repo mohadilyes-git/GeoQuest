@@ -262,13 +262,12 @@ struct PlayerPayload: Codable {
 
 //  Find
 
-
 struct Find: Codable, Identifiable {
     let findID: Int
     let findPlayerID: Int
     let findCacheID: Int
     let findDatetime: String
-    let findImageURL: String
+    let findImageURL: String?
     let findPlayer: FindPlayer?
     let findCache: FindCache?
 
@@ -289,11 +288,13 @@ struct FindPlayer: Codable {
     let playerID: Int
     let playerUserID: Int
     let playerEventID: Int
+    let playerUser: User?
 
     enum CodingKeys: String, CodingKey {
         case playerID = "PlayerID"
         case playerUserID = "PlayerUserID"
         case playerEventID = "PlayerEventID"
+        case playerUser = "PlayerUser"
     }
 }
 
@@ -325,7 +326,7 @@ struct FindPayload: Codable {
     let findPlayerID: Int
     let findCacheID: Int
     let findDatetime: String
-    let findImageURL: String
+    let findImageURL: String?
 
     enum CodingKeys: String, CodingKey {
         case findPlayerID = "FindPlayerID"

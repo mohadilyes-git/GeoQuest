@@ -152,7 +152,8 @@ struct LoginView: View {
                 currentImageIndex = (currentImageIndex + 1) % images.count
             }
             .navigationDestination(isPresented: $isLoggedIn) {
-                MapView()
+                MainTabView()
+                    .navigationBarBackButtonHidden(true)
             }
         }
     }
