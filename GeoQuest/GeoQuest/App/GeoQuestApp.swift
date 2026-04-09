@@ -6,18 +6,18 @@
 //
 
 import SwiftUI
-import FirebaseCore
 
 @main
 struct GeoQuestApp: App {
-    
-    init() {
-        FirebaseApp.configure()
-    }
+    @AppStorage("loggedInUserID") private var loggedInUserID = 0
     
     var body: some Scene {
         WindowGroup {
-            LoginView()
+            if loggedInUserID == 0 {
+                LoginView()
+            } else {
+                MainTabView()
+            }
         }
     }
-} 
+}

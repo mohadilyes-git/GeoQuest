@@ -12,6 +12,8 @@ struct MapView: View {
     @StateObject private var locationManager = LocationManager()
     @State private var caches: [Cache] = []
     @State private var selectedCache: Cache? = nil
+    @State private var foundCacheIDs: Set<Int> = []
+    @State private var hasSetInitialLocation = false
     @State private var showCacheDetail = false
     @State private var isLoading = false
     @State private var region = MKCoordinateRegion(
@@ -25,22 +27,24 @@ struct MapView: View {
             //  Map
             
             Map(coordinateRegion: $region,
+                interactionModes: .all,
                 showsUserLocation: true,
                 annotationItems: caches) { cache in
                 MapAnnotation(coordinate: CLLocationCoordinate2D(
                     latitude: cache.cacheLatitude,
                     longitude: cache.cacheLongitude)) {
-                    CachePinView(
-                        cache: cache,
-                        isSelected: selectedCache?.id == cache.id
-                    )
-                    .onTapGesture {
-                        selectedCache = cache
-                        showCacheDetail = true
+                        CachePinView(
+                            cache: cache,
+                            isSelected: selectedCache?.id == cache.id,
+                            isFound: foundCacheIDs.contains(cache.cacheID)
+                        )
+                        .onTapGesture {
+                            selectedCache = cache
+                            showCacheDetail = true
+                        }
                     }
-                }
             }
-            .ignoresSafeArea()
+                .ignoresSafeArea()
             
             //Top bar
             
@@ -105,33 +109,45 @@ struct MapView: View {
         }
         .sheet(isPresented: $showCacheDetail) {
             if let cache = selectedCache {
-                CacheDetailView(cache: cache)
+                CacheDetailView(cache: cache, isAlreadyFound: foundCacheIDs.contains(cache.cacheID))
             }
         }
+        
         .onAppear {
-            loadCaches()
-        }
-        .onChange(of: locationManager.userLocation) { location in
-            if let location = location {
-                withAnimation {
-                    region.center = location.coordinate
+                loadCaches()
+                NotificationCenter.default.addObserver(forName: NSNotification.Name("cacheFound"), object: nil, queue: .main) { notification in
+                    if let cacheID = notification.object as? Int {
+                        foundCacheIDs.insert(cacheID)
+                    }
                 }
             }
-        }
+        
     }
     
     //  Load caches
-    private func loadCaches() {
-        isLoading = true
-        Task {
-            do {
-                caches = try await GeoQuestAPIManager.shared.getCaches()
-            } catch {
-                print("Error loading caches: \(error)")
+        private func loadCaches() {
+            isLoading = true
+            
+            // Set initial location once
+            if let location = locationManager.userLocation {
+                region.center = location.coordinate
             }
-            isLoading = false
+            
+            Task {
+                do {
+                    caches = try await GeoQuestAPIManager.shared.getCaches()
+                    let userID = UserDefaults.standard.integer(forKey: "loggedInUserID")
+                    let players = try await GeoQuestAPIManager.shared.getPlayers()
+                    if let player = players.first(where: { $0.playerUserID == userID }) {
+                        let finds = try await GeoQuestAPIManager.shared.getFindsForPlayer(playerID: player.playerID)
+                        foundCacheIDs = Set(finds.map { $0.findCacheID })
+                    }
+                } catch {
+                    print("Error loading caches: \(error)")
+                }
+                isLoading = false
+            }
         }
-    }
     
     //  Centre on user
     private func centreOnUser() {
@@ -147,16 +163,19 @@ struct MapView: View {
 struct CachePinView: View {
     let cache: Cache
     let isSelected: Bool
+    let isFound: Bool
     
     var body: some View {
         VStack(spacing: 4) {
             ZStack {
                 Circle()
-                    .fill(isSelected ? Color.gqGoldReward : Color.gqCacheRed)
+                    .fill(isFound ? Color.gqLeafGreen :
+                          isSelected ? Color.gqGoldReward :
+                          Color.gqCacheRed)
                     .frame(width: isSelected ? 44 : 36,
                            height: isSelected ? 44 : 36)
                 
-                Image(systemName: "mappin")
+                Image(systemName: isFound ? "checkmark" : "mappin")
                     .font(.system(size: isSelected ? 20 : 16))
                     .foregroundColor(.white)
             }
@@ -177,83 +196,295 @@ struct CachePinView: View {
 }
 
 //  Cache detail sheet
-struct CacheDetailView: View {
-    let cache: Cache
-    @Environment(\.dismiss) var dismiss
+
     
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    
-                    // Points badge
-                    HStack {
-                        Image(systemName: "star.fill")
-                            .foregroundColor(Color.gqGoldReward)
-                        Text("\(cache.cachePoints) points")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(Color.gqGoldReward)
-                        Spacer()
-                        Text("Tap to unlock when nearby")
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary)
-                    }
-                    .padding()
-                    .background(Color.gqLightStone)
-                    .cornerRadius(12)
-                    
-                    // Description
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Description")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.secondary)
-                        Text(cache.cacheDescription)
-                            .font(.system(size: 15))
-                    }
-                    .padding()
-                    .background(Color.gqLightStone)
-                    .cornerRadius(12)
-                    
-                    // Clue
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Clue")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.secondary)
-                        Text(cache.cacheClue)
-                            .font(.system(size: 15))
-                    }
-                    .padding()
-                    .background(Color.gqLightStone)
-                    .cornerRadius(12)
-                    
-                    // Unlock button
-                    Button {
-                        //  proximity unlock
-                    } label: {
-                        Text("Unlock Cache")
+    struct CacheDetailView: View {
+        let cache: Cache
+        let isAlreadyFound: Bool
+        
+        @Environment(\.dismiss) var dismiss
+        @StateObject private var locationManager = LocationManager()
+        
+        @State private var isUnlocked = false
+        @State private var showCamera = false
+        @State private var capturedImage: UIImage? = nil
+        @State private var isLogging = false
+        @State private var logSuccess = false
+        @State private var errorMessage = ""
+        @State private var distance: Double? = nil
+        
+        // Unlock threshold in metres
+        let unlockRadius: Double = 50
+        
+        var isNearCache: Bool {
+            guard let distance = distance else { return false }
+            return distance <= unlockRadius
+        }
+        
+        var body: some View {
+            NavigationStack {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        
+                        // Distance indicator
+                        HStack {
+                            Image(systemName: "location.fill")
+                                .foregroundColor(isNearCache ? Color.gqLeafGreen : Color.gqCacheRed)
+                            
+                            if let distance = distance {
+                                if distance < 1000 {
+                                    Text("\(Int(distance))m away")
+                                } else {
+                                    Text(String(format: "%.1fkm away", distance / 1000))
+                                }
+                            } else {
+                                Text("Calculating distance...")
+                            }
+                            
+                            Spacer()
+                            
+                            // Status badge
+                            Text(isNearCache ? "In range" : "Too far")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(isNearCache ? Color.gqLeafGreen : Color.gqCacheRed)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(isNearCache ? Color.gqLeafGreen.opacity(0.15) : Color.gqCacheRed.opacity(0.15))
+                                .cornerRadius(20)
+                        }
+                        .padding()
+                        .background(Color.gqLightStone)
+                        .cornerRadius(12)
+                        
+                        // Points badge
+                        HStack {
+                            Image(systemName: "star.fill")
+                                .foregroundColor(Color.gqGoldReward)
+                            Text("\(cache.cachePoints) points")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(Color.gqGoldReward)
+                            Spacer()
+                        }
+                        .padding()
+                        .background(Color.gqLightStone)
+                        .cornerRadius(12)
+                        
+                        // Description
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Description")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.secondary)
+                            Text(cache.cacheDescription)
+                                .font(.system(size: 15))
+                        }
+                        .padding()
+                        .background(Color.gqLightStone)
+                        .cornerRadius(12)
+                        
+                        // Clue
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Clue")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.secondary)
+                            Text(cache.cacheClue)
+                                .font(.system(size: 15))
+                        }
+                        .padding()
+                        .background(Color.gqLightStone)
+                        .cornerRadius(12)
+                        
+                        // Captured photo
+                        if let image = capturedImage {
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(height: 200)
+                                .cornerRadius(12)
+                                .clipped()
+                        }
+                        
+                        // Error message
+                        if !errorMessage.isEmpty {
+                            Text(errorMessage)
+                                .foregroundColor(Color.gqCacheRed)
+                                .font(.system(size: 13))
+                                .multilineTextAlignment(.center)
+                        }
+                        // Navigate to cache
+                        Button {
+                            let coordinates = "\(cache.cacheLatitude),\(cache.cacheLongitude)"
+                            let url = URL(string: "maps://?daddr=\(coordinates)&dirflg=w")!
+                            UIApplication.shared.open(url)
+                        } label: {
+                            HStack {
+                                Image(systemName: "map.fill")
+                                Text("Navigate to Cache")
+                            }
                             .font(.system(size: 17, weight: .semibold))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 52)
-                            .background(Color.gqLeafGreen)
+                            .background(Color.gqSand)
                             .cornerRadius(12)
+                        }
+                        // Success message
+                        if logSuccess {
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(Color.gqLeafGreen)
+                                Text("Cache found! Points added.")
+                                    .foregroundColor(Color.gqLeafGreen)
+                                    .font(.system(size: 15, weight: .semibold))
+                            }
+                            .padding()
+                            .background(Color.gqLeafGreen.opacity(0.1))
+                            .cornerRadius(12)
+                        }
+                        
+                        // Unlock / Camera / Log button
+                        if isAlreadyFound {
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(Color.gqLeafGreen)
+                                Text("Already found!")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(Color.gqLeafGreen)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .background(Color.gqLeafGreen.opacity(0.15))
+                            .cornerRadius(12)
+                        } else if logSuccess {
+                            Button {
+                                dismiss()
+                            } label: {
+                                Text("Close")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 52)
+                                    .background(Color.gqLeafGreen)
+                                    .cornerRadius(12)
+                            }
+                        } else if capturedImage != nil {
+                            Button {
+                                logFind()
+                            } label: {
+                                ZStack {
+                                    Text("Log Find")
+                                        .font(.system(size: 17, weight: .semibold))
+                                        .foregroundColor(.white)
+                                        .opacity(isLogging ? 0 : 1)
+                                    if isLogging {
+                                        ProgressView()
+                                            .tint(.white)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 52)
+                                .background(Color.gqLeafGreen)
+                                .cornerRadius(12)
+                            }
+                            .disabled(isLogging)
+                        } else {
+                            Button {
+                                showCamera = true
+                            } label: {
+                                HStack {
+                                    Image(systemName: isNearCache ? "camera.fill" : "lock.fill")
+                                    Text(isNearCache ? "Take Photo to Unlock" : "Get closer to unlock")
+                                }
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 52)
+                                .background(isNearCache ? Color.gqLeafGreen : Color.gray)
+                                .cornerRadius(12)
+                            }
+                            .disabled(!isNearCache)
+                        }
+                    }
+                    .padding()
+                }
+                .navigationTitle(cache.cacheName)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Close") {
+                            dismiss()
+                        }
+                        .foregroundColor(Color.gqLeafGreen)
                     }
                 }
-                .padding()
             }
-            .navigationTitle(cache.cacheName)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Close") {
-                        dismiss()
+            .sheet(isPresented: $showCamera) {
+                CameraView(capturedImage: $capturedImage)
+            }
+            .onAppear {
+                updateDistance()
+            }
+            .onReceive(locationManager.$userLocation) { _ in
+                updateDistance()
+            }
+        }
+        
+        //  Calculate distance to cache
+        private func updateDistance() {
+            distance = locationManager.distanceTo(
+                latitude: cache.cacheLatitude,
+                longitude: cache.cacheLongitude
+            )
+        }
+        
+        //  Log find to API
+        private func logFind() {
+            isLogging = true
+            errorMessage = ""
+            
+            let userID = UserDefaults.standard.integer(forKey: "loggedInUserID")
+            
+            Task {
+                do {
+                    // Get all players
+                    let players = try await GeoQuestAPIManager.shared.getPlayers()
+                    var player = players.first { $0.playerUserID == userID }
+                    
+                    // If not a player yet, auto join event 1 (Global Mode)
+                    if player == nil {
+                        let joinPayload = PlayerPayload(
+                            playerUserID: userID,
+                            playerEventID: 1
+                        )
+                        player = try await GeoQuestAPIManager.shared.joinEvent(payload: joinPayload)
                     }
-                    .foregroundColor(Color.gqLeafGreen)
+                    
+                    guard let playerID = player?.playerID else {
+                        errorMessage = "Could not join event"
+                        isLogging = false
+                        return
+                    }
+                    
+                    // Log the find
+                    let payload = FindPayload(
+                        findPlayerID: playerID,
+                        findCacheID: cache.cacheID,
+                        findDatetime: ISO8601DateFormatter().string(from: Date()),
+                        findImageURL: "https://placehold.co/300x300/png"
+                    )
+                    
+                    let _ = try await GeoQuestAPIManager.shared.logFind(payload: payload)
+                    logSuccess = true
+                    // notify map to update this cache as found
+                    NotificationCenter.default.post(name: NSNotification.Name("cacheFound"), object: cache.cacheID)
+                    
+                } catch {
+                    errorMessage = "Failed: \(error.localizedDescription)"
                 }
+                isLogging = false
             }
         }
     }
-}
+
 
 #Preview {
     MapView()

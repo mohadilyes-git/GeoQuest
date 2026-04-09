@@ -6,18 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		B1CDB99B2F7EEEA100C7AB18 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = B1CDB99A2F7EEEA100C7AB18 /* FirebaseAuth */; };
-		B1CDB99D2F7EEEA100C7AB18 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = B1CDB99C2F7EEEA100C7AB18 /* FirebaseFirestore */; };
-		B1CDB99F2F7EEEA100C7AB18 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = B1CDB99E2F7EEEA100C7AB18 /* FirebaseStorage */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXFileReference section */
 		B1CDB9742F7EE5EA00C7AB18 /* GeoQuest.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GeoQuest.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		FA3D21C02F85E143004F83AA /* Exceptions for "GeoQuest" folder in "GeoQuest" target */ = {
+		B1CDBBED2F871DC700C7AB18 /* Exceptions for "GeoQuest" folder in "GeoQuest" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -30,7 +24,7 @@
 		B1CDB9762F7EE5EA00C7AB18 /* GeoQuest */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				FA3D21C02F85E143004F83AA /* Exceptions for "GeoQuest" folder in "GeoQuest" target */,
+				B1CDBBED2F871DC700C7AB18 /* Exceptions for "GeoQuest" folder in "GeoQuest" target */,
 			);
 			path = GeoQuest;
 			sourceTree = "<group>";
@@ -42,9 +36,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B1CDB99B2F7EEEA100C7AB18 /* FirebaseAuth in Frameworks */,
-				B1CDB99D2F7EEEA100C7AB18 /* FirebaseFirestore in Frameworks */,
-				B1CDB99F2F7EEEA100C7AB18 /* FirebaseStorage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -87,9 +78,6 @@
 			);
 			name = GeoQuest;
 			packageProductDependencies = (
-				B1CDB99A2F7EEEA100C7AB18 /* FirebaseAuth */,
-				B1CDB99C2F7EEEA100C7AB18 /* FirebaseFirestore */,
-				B1CDB99E2F7EEEA100C7AB18 /* FirebaseStorage */,
 			);
 			productName = GeoQuest;
 			productReference = B1CDB9742F7EE5EA00C7AB18 /* GeoQuest.app */;
@@ -120,7 +108,6 @@
 			mainGroup = B1CDB96B2F7EE5EA00C7AB18;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				B1CDB9992F7EEEA100C7AB18 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B1CDB9752F7EE5EA00C7AB18 /* Products */;
@@ -283,12 +270,14 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = GeoQuest/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "GeoQuest needs camera access to take photo evidence when finding a cache";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "GeoQuest needs your location to find nearby caches";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -317,12 +306,14 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = GeoQuest/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "GeoQuest needs camera access to take photo evidence when finding a cache";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "GeoQuest needs your location to find nearby caches";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -362,35 +353,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		B1CDB9992F7EEEA100C7AB18 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 12.11.0;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		B1CDB99A2F7EEEA100C7AB18 /* FirebaseAuth */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = B1CDB9992F7EEEA100C7AB18 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAuth;
-		};
-		B1CDB99C2F7EEEA100C7AB18 /* FirebaseFirestore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = B1CDB9992F7EEEA100C7AB18 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseFirestore;
-		};
-		B1CDB99E2F7EEEA100C7AB18 /* FirebaseStorage */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = B1CDB9992F7EEEA100C7AB18 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseStorage;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = B1CDB96C2F7EE5EA00C7AB18 /* Project object */;
 }

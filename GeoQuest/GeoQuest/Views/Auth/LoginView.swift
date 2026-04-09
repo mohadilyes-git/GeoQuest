@@ -42,7 +42,7 @@ struct LoginView: View {
                     VStack(spacing: 0) {
                         
                         Spacer()
-                            .frame(height: 80)
+                            .frame(height: 190)
                         
                         // Logo and title
                         VStack(spacing: 8) {
@@ -66,7 +66,8 @@ struct LoginView: View {
                                     .foregroundColor(Color.gqSand)
                                     .frame(width: 20)
                                 TextField("Username", text: $username)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.black)
+                                    .font(.system(size: 16))
                                     .autocapitalization(.none)
                                     .autocorrectionDisabled()
                                     .focused($focusedField, equals: .username)
@@ -74,7 +75,7 @@ struct LoginView: View {
                                     .onSubmit { focusedField = .password }
                             }
                             .padding()
-                            .background(Color.black.opacity(0.45))
+                            .background(Color.white.opacity(0.9))
                             .cornerRadius(12)
                             
                             // Password field
@@ -83,7 +84,8 @@ struct LoginView: View {
                                     .foregroundColor(Color.gqSand)
                                     .frame(width: 20)
                                 SecureField("Password", text: $password)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.black)
+                                    .font(.system(size: 16))
                                     .focused($focusedField, equals: .password)
                                     .submitLabel(.go)
                                     .onSubmit {
@@ -92,7 +94,7 @@ struct LoginView: View {
                                     }
                             }
                             .padding()
-                            .background(Color.black.opacity(0.45))
+                            .background(Color.white.opacity(0.9))
                             .cornerRadius(12)
                             
                             // Error message
@@ -152,7 +154,8 @@ struct LoginView: View {
                 currentImageIndex = (currentImageIndex + 1) % images.count
             }
             .navigationDestination(isPresented: $isLoggedIn) {
-                MapView()
+                MainTabView()
+                    .navigationBarBackButtonHidden(true)
             }
         }
     }
