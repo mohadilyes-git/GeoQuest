@@ -289,7 +289,23 @@ struct CachePinView: View {
                                 .font(.system(size: 13))
                                 .multilineTextAlignment(.center)
                         }
-                        
+                        // Navigate to cache
+                        Button {
+                            let coordinates = "\(cache.cacheLatitude),\(cache.cacheLongitude)"
+                            let url = URL(string: "maps://?daddr=\(coordinates)&dirflg=w")!
+                            UIApplication.shared.open(url)
+                        } label: {
+                            HStack {
+                                Image(systemName: "map.fill")
+                                Text("Navigate to Cache")
+                            }
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .background(Color.gqSand)
+                            .cornerRadius(12)
+                        }
                         // Success message
                         if logSuccess {
                             HStack {
