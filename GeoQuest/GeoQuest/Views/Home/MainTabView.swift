@@ -11,6 +11,13 @@ struct MainTabView: View {
                     Text("Map")
                 }
             
+            // Events tab
+            EventsView()
+                .tabItem {
+                    Image(systemName: "calendar.circle.fill")
+                    Text("Events")
+                }
+            
             // Leaderboard tab
             LeaderboardView()
                 .tabItem {
