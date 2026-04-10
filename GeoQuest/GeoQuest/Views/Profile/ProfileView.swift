@@ -6,6 +6,7 @@ struct ProfileView: View {
     @State private var finds: [Find] = []
     @State private var isLoading = false
     @State private var totalPoints = 0
+    @State private var isLoggingOut = false
     
     let api = GeoQuestAPIManager.shared
     let loggedInUserID = UserDefaults.standard.integer(forKey: "loggedInUserID")
@@ -103,14 +104,34 @@ struct ProfileView: View {
                         .padding(.horizontal, 16)
                         
                         // Recent finds
-                        if !finds.isEmpty {
-                            VStack(alignment: .leading, spacing: 0) {
-                                Text("Recent finds")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundColor(.secondary)
-                                    .padding(.horizontal, 16)
-                                    .padding(.bottom, 8)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Recent finds")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 16)
+                            
+                            if finds.isEmpty {
+                                HStack {
+                                    Spacer()
+                                    VStack(spacing: 8) {
+                                        Image(systemName: "mappin.slash")
+                                            .font(.system(size: 30))
+                                            .foregroundColor(Color.gqSand)
+                                        Text("No recent finds yet")
+                                            .font(.system(size: 14))
+                                            .foregroundColor(.secondary)
+                                        Text("Go explore and find some caches!")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .padding(.vertical, 24)
+                                    Spacer()
+                                }
+                                .background(Color.white)
+                                .cornerRadius(16)
+                                .padding(.horizontal, 16)
                                 
+                            } else {
                                 VStack(spacing: 0) {
                                     ForEach(finds.prefix(10)) { find in
                                         HStack {
@@ -148,16 +169,25 @@ struct ProfileView: View {
                         
                         // Logout button
                         Button {
-                            logout()
+                            Task { await logout() }
                         } label: {
-                            Text("Log out")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 52)
-                                .background(Color.gqCacheRed)
-                                .cornerRadius(12)
+                            ZStack {
+                                Text("Log out")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .opacity(isLoggingOut ? 0 : 1)
+                                
+                                if isLoggingOut {
+                                    ProgressView()
+                                        .tint(.white)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .background(Color.gqCacheRed)
+                            .cornerRadius(12)
                         }
+                        .disabled(isLoggingOut)
                         .padding(.horizontal, 16)
                         .padding(.bottom, 40)
                     }
@@ -209,7 +239,9 @@ struct ProfileView: View {
     }
     
     // Logout — clear saved user data and go back to login
-    func logout() {
+    func logout() async {
+        isLoggingOut = true
+        try? await Task.sleep(for: .seconds(1.5))
         UserDefaults.standard.removeObject(forKey: "loggedInUserID")
         UserDefaults.standard.removeObject(forKey: "loggedInUsername")
     }
