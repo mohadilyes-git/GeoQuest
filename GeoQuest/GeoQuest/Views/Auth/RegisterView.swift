@@ -71,7 +71,7 @@ struct RegisterView: View {
                         
                         GQTextField(
                             icon: "phone",
-                            placeholder: "Phone number",
+                            placeholder: "Phone number e.g. +447712148273",
                             text: $phone,
                             onSubmit: { focusedField = .username }
                         )
@@ -251,7 +251,7 @@ struct RegisterView: View {
             dismiss()
             
         } catch {
-            errorMessage = "Error: \(error)"
+            errorMessage = "Registration failed. Username and password must be at least 8 characters."
         }
         
         isLoading = false

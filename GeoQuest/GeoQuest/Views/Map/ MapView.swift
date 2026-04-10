@@ -52,7 +52,7 @@ struct MapView: View {
                 HStack {
                     Text("GeoQuest")
                         .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(Color.gqLeafGreen)
+                        .foregroundColor(Color.black)
                     
                     Spacer()
                     
@@ -71,7 +71,7 @@ struct MapView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
-                .background(Color.white.opacity(0.95))
+                
                 
                 Spacer()
                 
@@ -135,7 +135,13 @@ struct MapView: View {
             
             Task {
                 do {
-                    caches = try await GeoQuestAPIManager.shared.getCaches()
+                    let allCaches = try await GeoQuestAPIManager.shared.getCaches()
+                    let allEvents = try await GeoQuestAPIManager.shared.getEvents()
+                    let privateEventIDs = Set(allEvents
+                        .filter { $0.eventDescription.contains("inviteCode") }
+                        .map { $0.eventID })
+                    caches = allCaches.filter { !privateEventIDs.contains($0.cacheEventID) }
+                    
                     let userID = UserDefaults.standard.integer(forKey: "loggedInUserID")
                     let players = try await GeoQuestAPIManager.shared.getPlayers()
                     if let player = players.first(where: { $0.playerUserID == userID }) {
@@ -280,6 +286,51 @@ struct CachePinView: View {
                         .padding()
                         .background(Color.gqLightStone)
                         .cornerRadius(12)
+                        
+                        // Cache image from URL
+                        if !cache.cacheImageURL.isEmpty, let url = URL(string: cache.cacheImageURL) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Cache Image")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(.secondary)
+                                
+                                AsyncImage(url: url) { phase in
+                                    switch phase {
+                                    case .empty:
+                                        ZStack {
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(Color.gqLightStone)
+                                                .frame(height: 200)
+                                            ProgressView()
+                                                .tint(Color.gqLeafGreen)
+                                        }
+                                    case .success(let image):
+                                        image
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(height: 200)
+                                            .cornerRadius(12)
+                                            .clipped()
+                                    case .failure:
+                                        ZStack {
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(Color.gqLightStone)
+                                                .frame(height: 200)
+                                            VStack(spacing: 8) {
+                                                Image(systemName: "photo.slash")
+                                                    .font(.system(size: 32))
+                                                    .foregroundColor(Color.gqSand)
+                                                Text("Image unavailable")
+                                                    .font(.system(size: 13))
+                                                    .foregroundColor(.secondary)
+                                            }
+                                        }
+                                    @unknown default:
+                                        EmptyView()
+                                    }
+                                }
+                            }
+                        }
                         
                         // Clue
                         VStack(alignment: .leading, spacing: 6) {

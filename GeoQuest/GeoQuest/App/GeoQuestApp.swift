@@ -9,15 +9,9 @@ import SwiftUI
 
 @main
 struct GeoQuestApp: App {
-    @AppStorage("loggedInUserID") private var loggedInUserID = 0
-    
     var body: some Scene {
         WindowGroup {
-            if loggedInUserID == 0 {
-                LoginView()
-            } else {
-                MainTabView()
-            }
+            SplashScreenView()
         }
     }
 }
