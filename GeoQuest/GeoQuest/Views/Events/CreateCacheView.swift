@@ -1,14 +1,87 @@
 import SwiftUI
+import MapKit
 import CoreLocation
 
+// Tappable map for users
+
+struct TappableMapView: UIViewRepresentable {
+    @Binding var droppedPin: CLLocationCoordinate2D?
+
+    func makeUIView(context: Context) -> MKMapView {
+        let mapView = MKMapView()
+        mapView.showsUserLocation = true
+        mapView.delegate = context.coordinator
+
+        // Request location permission and track user
+        context.coordinator.locationManager.delegate = context.coordinator
+        context.coordinator.locationManager.requestWhenInUseAuthorization()
+        context.coordinator.locationManager.startUpdatingLocation()
+        context.coordinator.mapView = mapView
+
+        let tap = UITapGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(Coordinator.handleTap(_:))
+        )
+        mapView.addGestureRecognizer(tap)
+
+        return mapView
+    }
+
+    func updateUIView(_ uiView: MKMapView, context: Context) {
+        uiView.removeAnnotations(uiView.annotations)
+        if let pin = droppedPin {
+            let annotation = MKPointAnnotation()
+            annotation.coordinate = pin
+            annotation.title = "Cache Location"
+            uiView.addAnnotation(annotation)
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    class Coordinator: NSObject, MKMapViewDelegate, CLLocationManagerDelegate {
+        var parent: TappableMapView
+        var locationManager = CLLocationManager()
+        var mapView: MKMapView?
+        var hasZoomedToUser = false
+
+        init(_ parent: TappableMapView) {
+            self.parent = parent
+        }
+
+        // Centers the map on the user's location the first time it's received
+        func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+            guard !hasZoomedToUser, let location = locations.first else { return }
+            hasZoomedToUser = true
+
+            let region = MKCoordinateRegion(
+                center: location.coordinate,
+                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+            )
+            mapView?.setRegion(region, animated: true)
+            manager.stopUpdatingLocation()
+        }
+
+        @objc func handleTap(_ gesture: UITapGestureRecognizer) {
+            let mapView = gesture.view as! MKMapView
+            let screenPoint = gesture.location(in: mapView)
+            let coordinate = mapView.convert(screenPoint, toCoordinateFrom: mapView)
+            parent.droppedPin = coordinate
+        }
+    }
+}
+
+// Create Cache View
+
 struct CreateCacheView: View {
-    
+
     let event: Event
     let onSuccess: () -> Void
-    
+
     @Environment(\.dismiss) var dismiss
-    @StateObject private var locationManager = LocationManager()
-    
+
     @State private var cacheName = ""
     @State private var cacheDescription = ""
     @State private var cacheClue = ""
@@ -17,16 +90,19 @@ struct CreateCacheView: View {
     @State private var isLoading = false
     @State private var errorMessage = ""
     @State private var cacheCreated = false
-    
+
+    @State private var droppedPin: CLLocationCoordinate2D? = nil
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.gqLightStone.ignoresSafeArea()
-                
+
                 ScrollView {
                     VStack(spacing: 16) {
-                        
+
                         if cacheCreated {
+                            // Success state
                             VStack(spacing: 16) {
                                 Image(systemName: "checkmark.circle.fill")
                                     .font(.system(size: 60))
@@ -49,56 +125,68 @@ struct CreateCacheView: View {
                                 .padding(.horizontal, 16)
                             }
                             .padding(.top, 40)
-                            
+
                         } else {
-                            
-                            // Location info
-                            HStack {
-                                Image(systemName: "location.fill")
-                                    .foregroundColor(Color.gqLeafGreen)
-                                if locationManager.userLocation != nil {
-                                    Text("Cache will be placed at your current location")
-                                        .font(.system(size: 13))
-                                        .foregroundColor(.secondary)
-                                } else {
-                                    Text("Getting your location...")
+                            // Map Pin Dropper
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Image(systemName: "map.fill")
+                                        .foregroundColor(Color.gqLeafGreen)
+                                    Text(droppedPin == nil
+                                         ? "Tap the map to place your cache"
+                                         : "📍 Pin placed — tap again to move it")
                                         .font(.system(size: 13))
                                         .foregroundColor(.secondary)
                                 }
+                                .padding(.horizontal, 4)
+
+                                TappableMapView(droppedPin: $droppedPin)
+                                    .frame(height: 220)
+                                    .cornerRadius(12)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(
+                                                droppedPin != nil ? Color.gqLeafGreen : Color.gray.opacity(0.3),
+                                                lineWidth: droppedPin != nil ? 2 : 1
+                                            )
+                                    )
+
+                                if let pin = droppedPin {
+                                    Text(String(format: "Lat: %.5f,  Lon: %.5f", pin.latitude, pin.longitude))
+                                        .font(.system(size: 11, design: .monospaced))
+                                        .foregroundColor(.secondary)
+                                        .padding(.horizontal, 4)
+                                }
                             }
-                            .padding()
-                            .background(Color.white)
-                            .cornerRadius(12)
                             .padding(.horizontal, 16)
-                            
-                            // Form fields
+
+                            // Form fields for cache
                             VStack(spacing: 14) {
-                                
                                 GQTextField(
                                     icon: "mappin",
                                     placeholder: "Cache name",
                                     text: $cacheName
                                 )
-                                
+
                                 GQTextField(
                                     icon: "text.alignleft",
                                     placeholder: "Description",
                                     text: $cacheDescription
                                 )
-                                
+
                                 GQTextField(
                                     icon: "questionmark.circle",
                                     placeholder: "Clue",
                                     text: $cacheClue
                                 )
-                                
+
                                 GQTextField(
                                     icon: "star",
                                     placeholder: "Points (e.g. 10)",
                                     text: $cachePoints
                                 )
                                 .keyboardType(.numberPad)
-                                
+
                                 GQTextField(
                                     icon: "photo",
                                     placeholder: "Image URL",
@@ -108,8 +196,7 @@ struct CreateCacheView: View {
                                 .autocorrectionDisabled()
                             }
                             .padding(.horizontal, 16)
-                            
-                            // Error message
+
                             if !errorMessage.isEmpty {
                                 Text(errorMessage)
                                     .foregroundColor(Color.gqCacheRed)
@@ -117,8 +204,8 @@ struct CreateCacheView: View {
                                     .multilineTextAlignment(.center)
                                     .padding(.horizontal, 16)
                             }
-                            
-                            // Add cache button
+
+                            //Submit Button
                             Button {
                                 Task { await createCache() }
                             } label: {
@@ -153,48 +240,49 @@ struct CreateCacheView: View {
             }
         }
     }
-    
+
+    // Create Cache Logic
+
     func createCache() async {
         errorMessage = ""
-        
-        // Check each field individually and tell the user exactly what is missing
+
         if cacheName.isEmpty {
             errorMessage = "Please enter a cache name"
             return
         }
-        
+
         if cacheDescription.isEmpty {
             errorMessage = "Please enter a description"
             return
         }
-        
+
         if cacheClue.isEmpty {
             errorMessage = "Please enter a clue"
             return
         }
-        
+
         if cachePoints.isEmpty {
             errorMessage = "Please enter a points value"
             return
         }
-        
+
         if cacheImageURL.isEmpty {
             errorMessage = "Please enter an image URL"
             return
         }
-        
+
         guard let points = Int(cachePoints), points > 0 else {
             errorMessage = "Points must be a valid number greater than 0"
             return
         }
-        
-        guard let location = locationManager.userLocation else {
-            errorMessage = "Could not get your location. Make sure location is enabled."
+
+        guard let pin = droppedPin else {
+            errorMessage = "Please tap the map to place your cache location"
             return
         }
-        
+
         isLoading = true
-        
+
         let payload = CachePayload(
             cacheName: cacheName,
             cacheDescription: cacheDescription,
@@ -202,20 +290,21 @@ struct CreateCacheView: View {
             cacheImageURL: cacheImageURL,
             cacheClue: cacheClue,
             cachePoints: points,
-            cacheLatitude: location.coordinate.latitude,
-            cacheLongitude: location.coordinate.longitude
+            cacheLatitude: pin.latitude,
+            cacheLongitude: pin.longitude
         )
-        
+
         do {
             let _ = try await GeoQuestAPIManager.shared.createCache(payload: payload)
             cacheCreated = true
         } catch {
             errorMessage = "Failed to create cache. Please try again."
         }
-        
+
         isLoading = false
     }
 }
+
 
 #Preview {
     CreateCacheView(event: Event(
