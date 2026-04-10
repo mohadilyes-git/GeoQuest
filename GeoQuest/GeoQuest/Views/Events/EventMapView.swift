@@ -56,7 +56,7 @@ struct EventMapView: View {
                 HStack {
                     Text(event.eventName)
                         .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(Color.gqLeafGreen)
+                        .foregroundColor(Color.black)
                     
                     Spacer()
                     
@@ -87,7 +87,7 @@ struct EventMapView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
-                .background(Color.white.opacity(0.95))
+                
                 
                 Spacer()
                 

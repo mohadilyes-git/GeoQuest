@@ -97,29 +97,25 @@ struct CreateEventView: View {
                                 
                                 // Start date
                                 VStack(alignment: .leading, spacing: 6) {
-                                    Text("Start date")
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .foregroundColor(.secondary)
-                                    DatePicker("", selection: $startDate, displayedComponents: [.date, .hourAndMinute])
-                                        .labelsHidden()
+                                    
+                                    DatePicker("Start date", selection: $startDate, displayedComponents: [.date, .hourAndMinute])
                                         .tint(Color.gqLeafGreen)
                                 }
                                 .padding()
                                 .background(Color.white)
                                 .cornerRadius(12)
                                 
+                                
                                 // End date
                                 VStack(alignment: .leading, spacing: 6) {
-                                    Text("End date")
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .foregroundColor(.secondary)
-                                    DatePicker("", selection: $endDate, in: startDate..., displayedComponents: [.date, .hourAndMinute])
-                                        .labelsHidden()
+                                    
+                                    DatePicker("End date", selection: $endDate, in: startDate..., displayedComponents: [.date, .hourAndMinute])
                                         .tint(Color.gqLeafGreen)
                                 }
                                 .padding()
                                 .background(Color.white)
                                 .cornerRadius(12)
+                                .frame(maxWidth: .infinity)
                             }
                             .padding(.horizontal, 16)
                             .padding(.top, 16)
@@ -151,6 +147,7 @@ struct CreateEventView: View {
                             }
                             .disabled(isLoading)
                             .padding(.horizontal, 16)
+                            .padding(.top, 16)
                         }
                     }
                     .padding(.bottom, 40)

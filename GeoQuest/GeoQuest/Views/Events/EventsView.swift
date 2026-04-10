@@ -26,7 +26,11 @@ struct EventsView: View {
                 
                 VStack(spacing: 16) {
                     
-                    // Action buttons
+                    Text("Events")
+                            .font(.system(size: 31, weight: .bold))
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 8)                    // Action buttons
                     HStack(spacing: 12) {
                         
                         // Create Event
@@ -104,8 +108,10 @@ struct EventsView: View {
                     }
                 }
             }
-            .navigationTitle("Events")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            
+            
             .sheet(isPresented: $showCreateEvent) {
                 CreateEventView {
                     Task { await loadEvents() }

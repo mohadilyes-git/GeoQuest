@@ -52,7 +52,7 @@ struct MapView: View {
                 HStack {
                     Text("GeoQuest")
                         .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(Color.gqLeafGreen)
+                        .foregroundColor(Color.black)
                     
                     Spacer()
                     
@@ -71,7 +71,7 @@ struct MapView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
-                .background(Color.white.opacity(0.95))
+                
                 
                 Spacer()
                 
